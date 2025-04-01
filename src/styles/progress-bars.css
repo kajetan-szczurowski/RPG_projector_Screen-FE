@@ -1,0 +1,26 @@
+.progress-bar{
+    background-color: gray;
+    height: 1rem;
+}
+
+.HP-bar{
+    background-color: #790000;
+}
+
+.MP-bar{
+    background-color: #003663;
+}
+
+.PE-bar{
+    background-color: #b09154;
+}
+
+.bar-wrapper{
+    display: flex;
+    align-items: center;
+    height: 24px;
+}
+
+.progress-bar-text{
+    margin-left: 1rem;
+}

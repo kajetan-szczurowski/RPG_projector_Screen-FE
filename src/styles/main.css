@@ -1,0 +1,18 @@
+main{
+    width: 99vw;
+    display: flex;
+    justify-content: space-around;
+    background-image: url(https://s6.gifyu.com/images/bMSWK.jpg);
+    background-size: cover;
+    background-repeat: no-repeat;
+    border: 4px solid #605247;
+    position: absolute;
+    top: 10px;
+    padding-top: 1rem;
+    min-height: 80vh;
+}
+
+section{
+    display: flex;
+    flex-direction: column;
+}
