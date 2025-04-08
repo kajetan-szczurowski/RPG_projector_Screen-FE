@@ -1,12 +1,15 @@
 import GlobalState from './GlobalState';
 import { SocketProvider } from './SocketProvider';
 import Index from './components/Index';
+import { ContextMenuProvider } from './components/ContextMenuProvider';
 
 function App() {
   return (
       <SocketProvider>
         <GlobalState />
-        <Index />
+        <ContextMenuProvider>
+          <Index />
+        </ContextMenuProvider>
       </SocketProvider>
   )
 

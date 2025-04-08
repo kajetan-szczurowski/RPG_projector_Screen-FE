@@ -21,12 +21,12 @@ export default function NewEntityForm() {
             <InputWithLabel labelText = 'MP' inputRef = {mpRef} typeString = 'number'/>
             <InputWithLabel labelText = 'EP' inputRef = {epRef} typeString = 'number'/>
             <InputWithLabel labelText = 'Image URL' inputRef = {imgSourceRef} typeString = 'text'/>
-            <select ref = {selectRef}>
+            <select ref = {selectRef} className = 'new-form-selection'>
                 <option value = 'ally'>Ally</option>
                 <option value = 'foe'>Foe</option>
             </select>
 
-            <input type="submit" value="Append" />
+            <input type="submit" value="Append" className = 'new-form-selection'/>
 
         </form>
     )

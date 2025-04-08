@@ -22,3 +22,5 @@ export type MainStateType = {
   allies: EntityType[],
   foes: EntityType[],
 }
+
+export type ContextMenuStateType = {label: string, action: Function}[]
