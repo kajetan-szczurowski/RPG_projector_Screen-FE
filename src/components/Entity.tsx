@@ -1,19 +1,22 @@
 import { usersDataState } from "../GlobalState";
-import { EntityType } from "../types";
+import { EntityType, ContextMenuStateType } from "../types";
 import ProgressBar from "./ProgressBar";
-import {useRef} from 'react';
+import {useRef, useState} from 'react';
 import { useSocket } from "../SocketProvider";
 import { getSkullImageUrl } from "../../secret/constant";
+import { useContextMenu, openContextMenu } from "./ContextMenuProvider";
 
 import '../styles/entity.css';
 
 export default function Entity({entityData}: props) {
+    const setContextOptions = useContextMenu();
     const socket = useSocket();
-    const conditionsDialogRef = useRef<HTMLDialogElement>(null);
-    const conditionsTextRef = useRef<HTMLInputElement>(null);
+    const editDialogRef = useRef<HTMLDialogElement>(null);
+    const entityEditTextRef = useRef<HTMLInputElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const [editDialogOption, setEditDialogOption] = useState<'conditions' | 'imgSource' | 'name'>('conditions');
     const skullImageUrl = getSkullImageUrl();
     const isGM = usersDataState.value.isGM;
-    const userID = usersDataState.value.userID;
     const HP_Data = {value: entityData.healthPoints.currentValue, maxValue: entityData.healthPoints.maxValue, foregroundClassName: 'HP-bar'};
     const MP_Data = {value: entityData.magicPoints.currentValue, maxValue: entityData.magicPoints.maxValue, foregroundClassName: 'MP-bar'};
     const PE_Data = {value: entityData.equipmentPoints.currentValue, maxValue: entityData.equipmentPoints.maxValue, foregroundClassName: 'PE-bar'};
@@ -29,15 +32,14 @@ export default function Entity({entityData}: props) {
     
     return(
         <>
-            <div className = 'entity-wrapper'>
+            <div className = 'entity-wrapper' onContextMenu = {handleRightClick} ref = {wrapperRef}>
                 <div className = 'image-and-name-wrapper'>
                     <div className = {`image-wrapper ${imgClassName}`}>
                         <img src={entityData.imgSource} className = {imgClassName} onClick={handleImageClick}></img>
                         {entityData.status === 'dead' && <div className = "dead-overlay"/>}
                         {entityData.status === 'dead' && <img src = {skullImageUrl} className = "skull-image"/>}
                     </div>
-                    <div className = 'entity-name'>{entityData.name}</div>
-                    {isGM && <GM_Tools/>}
+                    <div className = 'entity-name' onClick = {handleNameClick}>{entityData.name}</div>
                 </div>
                 <div>
                     <div className = {conditionsClassName} onClick = {handleConditionsClick}>{conditionsText}</div>
@@ -46,77 +48,81 @@ export default function Entity({entityData}: props) {
                     <ProgressBar {...PE_Data} mainDivClassName={barBackgroundClassName} widthRem={barWidthRem} entityID = {entityData.id} showValues = {entityData.statsVisibleByPlayers}/>
                 </div>
             </div>
-        <ConditionsDialog/>
+        <EditDialog/>
         </>
     )
 
-    function ConditionsDialog(){
+    function EditDialog(){
         return(
-            <dialog ref = {conditionsDialogRef}>
+            <dialog ref = {editDialogRef}>
                 <form onSubmit = {handleConditionsSubmit}>
-                    <label>Conditions:</label>
-                    <input type = 'text' defaultValue = {entityData.conditions} ref = {conditionsTextRef}/>
+                    <label>{editDialogOption}:</label>
+                    <input type = 'text' defaultValue = {entityData.conditions} ref = {entityEditTextRef}/>
                 </form>
             </dialog>
         )
     }
 
-    function GM_Tools(){
-        return(
-            <>
-                <div>
-                    <button onClick = {kill}>K</button>
-                    <button onClick = {knockDown}>U</button>
-                    <button onClick = {deleteEntity}>D</button>
-                    <button onClick = {revive}>A</button>
-                    <button onClick = {showStats}>S</button>
-                </div>
-            </>
-        )
+    function handleRightClick(e: React.MouseEvent){
+        e.preventDefault();
+        e.stopPropagation();
+        setContextOptions(getContextMenuOptions());
+        openContextMenu(e.pageX, e.pageY);
     }
 
 
-    function kill(){
-        socket.emit('entiity-set-state', {userID: userID, entityID: entityData.id, newState: 'dead'});
+    function getContextMenuOptions(): ContextMenuStateType{
+        return[
+            {label: 'kill', action: () => setState('dead')},
+            {label: 'knock down', action: () => setState('unconscious')},
+            {label: 'revive', action: () => setState('alive')},
+            {label: 'RESTfull', action: () => performArgumentlessAction('full-rest')},
+            {label: 'change image', action: changeImage},
+            {label: 'show stats', action: () => setState('visible-stats')},
+            {label: 'delete', action: () => performArgumentlessAction('delete-entity')},
+            {label: 'duplicate', action: () => performArgumentlessAction('duplicate-entity')},
+            {label: 'toogle ally/foe', action: () => {performArgumentlessAction('toogle-affiliation')}}
+        ]
     }
-
-    function knockDown(){
-        socket.emit('entiity-set-state', {userID: userID, entityID: entityData.id, newState: 'unconscious'});
-    }
-
-    function revive(){
-        socket.emit('entiity-set-state', {userID: userID, entityID: entityData.id, newState: 'alive'});
-    }
-
-    function showStats(){
-        socket.emit('entiity-set-state', {userID: userID, entityID: entityData.id, newState: 'visible-stats'});
-    }
-
-    function deleteEntity(){
-        socket.emit('delete-entity', {userID: userID, entityID: entityData.id});
-    }
+    
+    function setState(valueToSet: string){socket.emit('entity-set-state', {entityID: entityData.id, newState: valueToSet})};
+    function performArgumentlessAction(socketAction: string){socket.emit(socketAction, {entityID: entityData.id})};
 
     function handleImageClick(){
         if (!isGM) return;
-        socket.emit('toogle-turn-done', {userID: userID, entityID: entityData.id});
+        socket.emit('toogle-turn-done', {entityID: entityData.id});
     }
 
     function handleConditionsClick(){
-        if (!isGM || !conditionsDialogRef.current) return;
-        if (conditionsDialogRef.current.open) return;
-        conditionsDialogRef.current.showModal();
+        if (!isGM || !editDialogRef.current) return;
+        if (editDialogRef.current.open) return;
+        setEditDialogOption('conditions');
+        editDialogRef.current.showModal();
+    }
+
+    function handleNameClick(){
+        if (!isGM || !editDialogRef.current) return;
+        if (editDialogRef.current.open) return;
+        setEditDialogOption('name');
+        editDialogRef.current.showModal();
+    }
+
+    function changeImage(){
+        if (!isGM || !editDialogRef.current) return;
+        if (editDialogRef.current.open) return;
+        setEditDialogOption('imgSource');
+        editDialogRef.current.showModal();
     }
 
     function handleConditionsSubmit(e: React.FormEvent<HTMLFormElement>){
         e.preventDefault();
-        if (!conditionsTextRef.current) return;
-        socket.emit('entiity-edit', {
-            userID: userID,
+        if (!entityEditTextRef.current) return;
+        socket.emit('entity-edit', {
             entityID: entityData.id,
-            barType: 'conditions',
-            value: conditionsTextRef.current.value
+            barType: editDialogOption,
+            value: entityEditTextRef.current.value
         });
-        if (conditionsDialogRef.current?.open) conditionsDialogRef.current.close();
+        if (editDialogRef.current?.open) editDialogRef.current.close();
     }
 
     

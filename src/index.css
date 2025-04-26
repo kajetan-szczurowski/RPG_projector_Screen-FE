@@ -21,6 +21,7 @@ body {
   background-size: cover;
 }
 
+
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
@@ -43,6 +44,16 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+#context-menu-dialog{
+  background-color: white;
+  position: absolute;
+  z-index: 10;
+}
+
+#context-menu-dialog div:hover{
+  color: red;
 }
 
 @media (prefers-color-scheme: light) {

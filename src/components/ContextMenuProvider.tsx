@@ -8,23 +8,35 @@ export function ContextMenuProvider({children}: any){
     const [contextOptions, setContextOptions] = useState<ContextMenuStateType>([]);
     return(
         <contextMenuState.Provider value={setContextOptions}>
-            <dialog id = {dialogID}>
-                {contextOptions.map(entry => <div>{entry.label}</div>)}
-            </dialog>
+            <div id = {dialogID} style = {{'display': 'none'}}>
+                {contextOptions.map(entry => <div onClick = {e => handleOptionClick(e, entry.action)}>{entry.label}</div>)}
+            </div>
             {children}
         </contextMenuState.Provider>
 )
+
+    function handleOptionClick(e:React.MouseEvent, callback: Function){
+        e.preventDefault();
+        callback();
+        closeContextMenu();
+    }
 }
 
 export function useContextMenu(){
     return useContext(contextMenuState);
 }
 
-export function toogleContextMenu(){
-    const contextDialog = document.getElementById(dialogID) as HTMLDialogElement;
+export function openContextMenu(x: number, y: number){
+    const contextDialog = document.getElementById(dialogID);
     if (!contextDialog) return;
 
-    if (contextDialog.open) contextDialog.close();
-    else contextDialog.show();
+    contextDialog.style.top = `${y}px`;
+    contextDialog.style.left = `${x}px`;
+    contextDialog.style.display = 'block';
+}
 
+export function closeContextMenu(){
+    const contextDialog = document.getElementById(dialogID);
+    if (!contextDialog) return;
+    contextDialog.style.display = 'none';
 }

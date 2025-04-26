@@ -53,7 +53,7 @@ export default function ProgressBar({value, maxValue, widthRem, mainDivClassName
     }
 
     function sendChangeRequest(typeOfValue: 'current' | 'max', newValue: string){
-        socket.emit('entiity-edit', {
+        socket.emit('entity-edit', {
             userID: userID,
             entityID: entityID,
             barType: foregroundClassName.replace("-bar", ""),

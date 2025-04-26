@@ -10,9 +10,16 @@ main{
     /* top: 10px; */
     padding-top: 1rem;
     min-height: 80vh;
+
+      
 }
 
-section{
+
+.entities-wrapper{
+    max-height: 80vh;
+    overflow: scroll;
+    min-width: 25vw;
     display: flex;
     flex-direction: column;
+    scrollbar-width: 0;
 }
