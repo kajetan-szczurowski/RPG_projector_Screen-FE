@@ -22,4 +22,7 @@ main{
     display: flex;
     flex-direction: column;
     scrollbar-width: 0;
+    overflow: hidden;
 }
+
+

@@ -1,16 +1,16 @@
 import { usersDataState } from "../GlobalState";
 import { EntityType, ContextMenuStateType } from "../types";
+import { publishObjectStateChange } from "./API/gameServer";
 import ProgressBar from "./ProgressBar";
 import {useRef, useState} from 'react';
-import { useSocket } from "../SocketProvider";
 import { getSkullImageUrl } from "../../secret/constant";
 import { useContextMenu, openContextMenu } from "./ContextMenuProvider";
+import { publishObjectDeletion, duplicateEntity } from "./API/gameServer";
 
 import '../styles/entity.css';
 
 export default function Entity({entityData}: props) {
     const setContextOptions = useContextMenu();
-    const socket = useSocket();
     const editDialogRef = useRef<HTMLDialogElement>(null);
     const entityEditTextRef = useRef<HTMLInputElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
@@ -55,7 +55,7 @@ export default function Entity({entityData}: props) {
     function EditDialog(){
         return(
             <dialog ref = {editDialogRef}>
-                <form onSubmit = {handleConditionsSubmit}>
+                <form onSubmit = {handleSubmit}>
                     <label>{editDialogOption}:</label>
                     <input type = 'text' defaultValue = {entityData.conditions} ref = {entityEditTextRef}/>
                 </form>
@@ -76,21 +76,31 @@ export default function Entity({entityData}: props) {
             {label: 'kill', action: () => setState('dead')},
             {label: 'knock down', action: () => setState('unconscious')},
             {label: 'revive', action: () => setState('alive')},
-            {label: 'RESTfull', action: () => performArgumentlessAction('full-rest')},
+            {label: 'RESTfull', action: () => setState('full-rest')},
             {label: 'change image', action: changeImage},
-            {label: 'show stats', action: () => setState('visible-stats')},
-            {label: 'delete', action: () => performArgumentlessAction('delete-entity')},
-            {label: 'duplicate', action: () => performArgumentlessAction('duplicate-entity')},
-            {label: 'toogle ally/foe', action: () => {performArgumentlessAction('toogle-affiliation')}}
+            {label: 'show stats', action: () => setState(!entityData.statsVisibleByPlayers, 'statsVisibleByPlayers')},
+            {label: 'delete', action: () => publishObjectDeletion(entityData.id, 'entity')},
+            {label: 'duplicate', action: () => duplicateEntity(entityData)},
+            {label: 'toogle ally/foe', action: () => {toogleAffilation()}}
         ]
     }
+
+
+
+    function setState(valueToSet: string | boolean, keyToSet: string = 'status'){
+        publishObjectStateChange(entityData.id, keyToSet, valueToSet, 'entity');
+    };
+
+    function toogleAffilation(){
+        const newAffilation = entityData.affiliation === 'foe'? 'ally' : 'foe';
+        publishObjectStateChange(entityData.id, 'affiliation', newAffilation, 'entity');
+    }
     
-    function setState(valueToSet: string){socket.emit('entity-set-state', {entityID: entityData.id, newState: valueToSet})};
-    function performArgumentlessAction(socketAction: string){socket.emit(socketAction, {entityID: entityData.id})};
 
     function handleImageClick(){
         if (!isGM) return;
-        socket.emit('toogle-turn-done', {entityID: entityData.id});
+        const turnDoneValue = entityData.turnDone? false : true;
+        setState(turnDoneValue, 'turnDone');
     }
 
     function handleConditionsClick(){
@@ -114,14 +124,10 @@ export default function Entity({entityData}: props) {
         editDialogRef.current.showModal();
     }
 
-    function handleConditionsSubmit(e: React.FormEvent<HTMLFormElement>){
+    function handleSubmit(e: React.FormEvent<HTMLFormElement>){
         e.preventDefault();
         if (!entityEditTextRef.current) return;
-        socket.emit('entity-edit', {
-            entityID: entityData.id,
-            barType: editDialogOption,
-            value: entityEditTextRef.current.value
-        });
+        setState(entityEditTextRef.current.value, editDialogOption);
         if (editDialogRef.current?.open) editDialogRef.current.close();
     }
 

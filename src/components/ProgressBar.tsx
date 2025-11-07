@@ -1,18 +1,22 @@
 import { usersDataState } from "../GlobalState"
 import '../styles/progress-bars.css'
 import '../styles/entity.css';
-import { useSocket } from "../SocketProvider";
+import { socketEmit } from "../SocketProvider";
 import { useRef } from "react";
+import { AssetEditPayload } from "../types";
 
 export default function ProgressBar({value, maxValue, widthRem, mainDivClassName, foregroundClassName, entityID, showValues}: props) {
     const dialogRef = useRef<HTMLDialogElement>(null);
     const currentValueRef = useRef<HTMLInputElement>(null);
-    const socket = useSocket();
+    const maxValueRef = useRef<HTMLInputElement>(null);
     const isGM = usersDataState.value.isGM;
-    const userID = usersDataState.value.userID;
+    // const userID = usersDataState.value.userID;
     const valueCoefficient = getValueCoefficient(value, maxValue);
     const barTextClassName = `progress-bar-text gm-${isGM}`;
     const textValue = (isGM || showValues)? `${value}/${maxValue}` : '';
+
+
+    const barsMap = {'HP' : 'healthPoints', 'MP' : 'magicPoints', 'PE' : 'equipmentPoints'};
 
 
     return(
@@ -30,7 +34,7 @@ export default function ProgressBar({value, maxValue, widthRem, mainDivClassName
         return(
             <dialog ref = {dialogRef}>
                 <BarForm labelText="current" currentValue={value} callback={sendChangeRequest} typeOfValue = "current" customRef={currentValueRef}/>
-                <BarForm labelText="max" currentValue={value} callback={sendChangeRequest} typeOfValue = "max"/>
+                <BarForm labelText="max" currentValue={maxValue} callback={sendChangeRequest} typeOfValue = "max" customRef={maxValueRef}/>
             </dialog>
         )
     }
@@ -52,14 +56,21 @@ export default function ProgressBar({value, maxValue, widthRem, mainDivClassName
         }
     }
 
-    function sendChangeRequest(typeOfValue: 'current' | 'max', newValue: string){
-        socket.emit('entity-edit', {
-            userID: userID,
-            entityID: entityID,
-            barType: foregroundClassName.replace("-bar", ""),
-            valueType: typeOfValue,
-            value: newValue
-        });
+    function sendChangeRequest(){
+        const currentBarType = foregroundClassName.replace("-bar", "");
+        if (!["MP", "HP", "PE"].includes(currentBarType)) return;
+        const currentBarName = currentBarType as "MP" | "HP" | "PE";
+        const currentKey = barsMap[currentBarName];
+        const payload : AssetEditPayload = {
+            order: 'update',
+            assetType: 'entity',
+            id: entityID,
+            barType: currentBarName ,
+            value: `${currentValueRef.current?.value}/${maxValueRef.current?.value}`,
+            key:  currentKey
+        }
+        // socket.emit('edit-asset', payload);
+        socketEmit('edit-asset', JSON.stringify(payload));
     }
 
     function handleClick() {
